@@ -2,8 +2,163 @@
 
 <img src="https://github.com/SophiaTulip/8_Week_SQL_Challenge/assets/157422079/1b507d0d-4903-4dc6-916c-3725cb673b68" width=500/>
 
+## Table of Contents
+
+- [Business Task](#business-task)
+- [Case Study Topics](#case-study-topics)
+- [ERD](#erd)
+- [Questions and Solutions](#questions-and-solutions)
+
+Original source for this case study can be found [here](https://8weeksqlchallenge.com/case-study-1/).
 ## Business Task
 
-Danny wants to use the provided data to analize customer's visiting and spending patterns. This will help to create a more personalized experience for his customers, as well as give Danny the insight he needs in order to make a decision about expanding his customer loyalty program.
+Danny aims to leverage the provided data to analyze customers' visiting and spending patterns. This analysis will enable him to create a more personalized experience for his customers and provide the insights necessary to make informed decisions about expanding his customer loyalty program.
 
-## Topics Covered in Study
+## Case Study Topics
+
+- Common Table Expressions
+- Group By Aggregates
+- Window Functions for ranking
+- Table Joins
+
+## ERD
+
+<img width="500" alt="ERD1" src="https://github.com/SophiaTulip/8_Week_SQL_Challenge/assets/157422079/461b54d1-2b3d-42ec-b57b-e33b1dc3fe7b">
+
+## Questions and Solutions
+
+The questions were answered using PostgreSQL 15.
+
+**1. What is the total amount each customer spent at the restaurant?**
+
+```sql
+SELECT
+  customer_id,
+  SUM(price) AS total
+FROM dannys_diner.sales
+JOIN dannys_diner.menu
+  ON sales.product_id = menu.product_id
+GROUP BY customer_id
+ORDER BY customer_id ASC;
+```
+**Answer:**
+| customer_id | total |
+|---|---|
+| A | 76 |
+| B | 74 |
+| C | 36 |
+<br>
+
+**2. How many days has each customer visited the restaurant?**
+```sql
+SELECT
+  customer_id,
+  COUNT(DISTINCT order_date) AS total_visits
+FROM dannys_diner.sales
+GROUP BY customer_id;
+```
+**Answer:**
+| customer_id | total_visits |
+|---|---|
+| A | 4 |
+| B | 6 |
+| C | 2 |
+<br>
+
+**3. What was the first item from the menu purchased by each customer?**
+
+```sql
+```
+**Answer:**
+| customer_id | total |
+|---|---|
+| A | 76 |
+| B | 74 |
+| C | 36 |
+<br>
+
+**4. What is the most purchased item on the menu and how many times was it purchased by all customers?**
+
+```sql
+```
+**Answer:**
+| customer_id | total |
+|---|---|
+| A | 76 |
+| B | 74 |
+| C | 36 |
+<br>
+
+**5. Which item was the most popular for each customer?**
+
+```sql
+```
+**Answer:**
+| customer_id | total |
+|---|---|
+| A | 76 |
+| B | 74 |
+| C | 36 |
+<br>
+
+**6. Which item was purchased first by the customer after they became a member?**
+
+```sql
+```
+**Answer:**
+| customer_id | total |
+|---|---|
+| A | 76 |
+| B | 74 |
+| C | 36 |
+<br>
+
+**7. Which item was purchased just before the customer became a member?**
+
+```sql
+```
+**Answer:**
+| customer_id | total |
+|---|---|
+| A | 76 |
+| B | 74 |
+| C | 36 |
+<br>
+
+**8. What is the total items and amount spent for each member before they became a member?**
+
+```sql
+```
+**Answer:**
+| customer_id | total |
+|---|---|
+| A | 76 |
+| B | 74 |
+| C | 36 |
+<br>
+
+**9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?**
+
+```sql
+```
+**Answer:**
+| customer_id | total |
+|---|---|
+| A | 76 |
+| B | 74 |
+| C | 36 |
+<br>
+
+**10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?**
+
+```sql
+```
+**Answer:**
+| customer_id | total |
+|---|---|
+| A | 76 |
+| B | 74 |
+| C | 36 |
+<br>
+
+**Bonus Questions:**
