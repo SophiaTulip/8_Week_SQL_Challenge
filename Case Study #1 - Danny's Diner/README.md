@@ -33,13 +33,13 @@ The questions were answered using PostgreSQL 15.
 
 ```sql
 SELECT
-  customer_id,
-  SUM(price) AS total
+  sales.customer_id,
+  SUM(menu.price) AS total
 FROM dannys_diner.sales
 JOIN dannys_diner.menu
   ON sales.product_id = menu.product_id
-GROUP BY customer_id
-ORDER BY customer_id ASC;
+GROUP BY sales.customer_id
+ORDER BY sales.customer_id ASC;
 ```
 **Answer:**
 | customer_id | total |
@@ -73,10 +73,10 @@ SELECT
   product_name
 FROM (
   SELECT
-    customer_id,
-    product_name,
-    order_date,
-    DENSE_RANK() OVER (ORDER BY order_date ASC) AS rank
+    sales.customer_id,
+    menu.product_name,
+    sales.order_date,
+    DENSE_RANK() OVER (ORDER BY sales.order_date ASC) AS rank
   FROM dannys_diner.sales
   JOIN dannys_diner.menu
     ON sales.product_id = menu.product_id
@@ -98,13 +98,20 @@ ORDER BY customer_id ASC
 **4. What is the most purchased item on the menu and how many times was it purchased by all customers?**
 
 ```sql
+SELECT
+  menu.product_name,
+  COUNT (sales.product_id) AS num_of_purchases
+ FROM dannys_diner.sales
+ JOIN dannys_diner.menu
+  ON sales.product_id = menu.product_id
+ GROUP BY menu.product_name
+ ORDER BY num_of_purchases DESC
+ LIMIT 1;
 ```
 **Answer:**
-| customer_id | total |
+| product_name | num_of_purchases |
 |---|---|
-| A | 76 |
-| B | 74 |
-| C | 36 |
+| ramen | 8 |
 <br>
 
 **5. Which item was the most popular for each customer?**
