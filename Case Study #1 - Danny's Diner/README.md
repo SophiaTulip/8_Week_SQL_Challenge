@@ -68,13 +68,31 @@ GROUP BY customer_id;
 **3. What was the first item from the menu purchased by each customer?**
 
 ```sql
+SELECT
+  customer_id,
+  product_name
+FROM (
+  SELECT
+    customer_id,
+    product_name,
+    order_date,
+    DENSE_RANK() OVER (ORDER BY order_date ASC) AS rank
+  FROM dannys_diner.sales
+  JOIN dannys_diner.menu
+    ON sales.product_id = menu.product_id
+) AS answer3
+WHERE rank = 1
+GROUP BY product_name, customer_id
+ORDER BY customer_id ASC
 ```
+
 **Answer:**
-| customer_id | total |
+| customer_id | product_name |
 |---|---|
-| A | 76 |
-| B | 74 |
-| C | 36 |
+| A | curry |
+| A | sushi |
+| B | curry |
+| C | ramen |
 <br>
 
 **4. What is the most purchased item on the menu and how many times was it purchased by all customers?**
