@@ -85,7 +85,6 @@ WHERE rank = 1
 GROUP BY product_name, customer_id
 ORDER BY customer_id ASC
 ```
-
 **Answer:**
 | customer_id | product_name |
 |---|---|
@@ -117,13 +116,33 @@ SELECT
 **5. Which item was the most popular for each customer?**
 
 ```sql
+SELECT
+  customer_id,
+  product_name,
+  num_of_purchases
+FROM (
+  SELECT 
+    sales.customer_id, 
+    menu.product_name, 
+    COUNT(menu.product_id) AS num_of_purchases,
+    DENSE_RANK() OVER (PARTITION BY sales.customer_id
+      ORDER BY COUNT(sales.customer_id) DESC) AS rank
+  FROM dannys_diner.menu
+  INNER JOIN dannys_diner.sales
+    ON menu.product_id = sales.product_id
+  GROUP BY sales.customer_id, menu.product_name
+) AS answer5
+WHERE rank = 1
+ORDER BY customer_id ASC, product_name ASC
 ```
 **Answer:**
-| customer_id | total |
-|---|---|
-| A | 76 |
-| B | 74 |
-| C | 36 |
+| customer_id | product_name | num_of_purchases |
+|---|---|---|
+| A | ramen | 3 |
+| B | curry | 2 |
+| B | ramen | 2 |
+| B | sushi | 2 |
+| C | ramen | 3 |
 <br>
 
 **6. Which item was purchased first by the customer after they became a member?**
