@@ -148,6 +148,18 @@ ORDER BY customer_id ASC, product_name ASC
 **6. Which item was purchased first by the customer after they became a member?**
 
 ```sql
+SELECT
+  members.customer_id,
+  menu.product_name,
+  members.join_date,
+  sales.order_date
+FROM dannys_diner.sales
+JOIN dannys_diner.members
+	ON sales.customer_id = members.customer_id
+JOIN dannys_diner.menu
+	ON sales.product_id = menu.product_id
+WHERE sales.order_date >= members.join_date
+ORDER BY members.join_date ASC, sales.order_date ASC
 ```
 **Answer:**
 | customer_id | total |
