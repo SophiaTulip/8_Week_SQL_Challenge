@@ -92,6 +92,8 @@ ORDER BY customer_id ASC
 | A | sushi |
 | B | curry |
 | C | ramen |
+
+*Customer A purchased 2 products in their order.*
 <br>
 
 **4. What is the most purchased item on the menu and how many times was it purchased by all customers?**
@@ -149,36 +151,68 @@ ORDER BY customer_id ASC, product_name ASC
 
 ```sql
 SELECT
-  members.customer_id,
-  menu.product_name,
-  members.join_date,
-  sales.order_date
-FROM dannys_diner.sales
-JOIN dannys_diner.members
-	ON sales.customer_id = members.customer_id
-JOIN dannys_diner.menu
-	ON sales.product_id = menu.product_id
-WHERE sales.order_date >= members.join_date
-ORDER BY members.join_date ASC, sales.order_date ASC
+  customer_id,
+  product_name
+FROM(
+  SELECT
+    members.customer_id,
+    menu.product_name,
+    members.join_date,
+    sales.order_date,
+    DENSE_RANK() OVER (PARTITION BY members.customer_id
+      ORDER BY sales.order_date) AS rank
+  FROM dannys_diner.sales
+  JOIN dannys_diner.members
+    ON sales.customer_id = members.customer_id
+  JOIN dannys_diner.menu
+    ON sales.product_id = menu.product_id
+  WHERE sales.order_date >= members.join_date
+  ORDER BY members.join_date ASC, sales.order_date ASC
+) AS answer6
+WHERE rank = 1
 ```
 **Answer:**
-| customer_id | total |
+| customer_id | product_name |
 |---|---|
-| A | 76 |
-| B | 74 |
-| C | 36 |
+| A | curry |
+| B | sushi |
+
+*Given the absence of timestamps, I used a >= operator because Customer A joined the loyalty program on the same day as placing an order.*
 <br>
 
 **7. Which item was purchased just before the customer became a member?**
 
 ```sql
+SELECT
+  customer_id,
+  product_name
+FROM (
+	SELECT
+  		members.customer_id,
+  		menu.product_name,
+  		members.join_date,
+  		sales.order_date,
+  		DENSE_RANK() OVER (PARTITION BY members.customer_id
+      		ORDER BY sales.order_date DESC) AS rank
+	FROM dannys_diner.sales
+	JOIN dannys_diner.members
+		ON sales.customer_id = members.customer_id
+	JOIN dannys_diner.menu
+	ON sales.product_id = menu.product_id
+	WHERE sales.order_date < members.join_date
+	ORDER BY members.join_date ASC, sales.order_date DESC
+) AS answer7
+WHERE rank = 1
+ORDER BY product_name ASC, customer_id ASC
 ```
 **Answer:**
-| customer_id | total |
+| customer_id | product_name |
 |---|---|
-| A | 76 |
-| B | 74 |
-| C | 36 |
+| A | curry |
+| A | sushi |
+| B | sushi |
+
+*Customer A purchased 2 products in their order.*
 <br>
 
 **8. What is the total items and amount spent for each member before they became a member?**
