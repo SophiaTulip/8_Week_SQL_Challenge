@@ -187,20 +187,20 @@ SELECT
   customer_id,
   product_name
 FROM (
-	SELECT
-  		members.customer_id,
-  		menu.product_name,
-  		members.join_date,
-  		sales.order_date,
-  		DENSE_RANK() OVER (PARTITION BY members.customer_id
-      		ORDER BY sales.order_date DESC) AS rank
-	FROM dannys_diner.sales
-	JOIN dannys_diner.members
-		ON sales.customer_id = members.customer_id
-	JOIN dannys_diner.menu
-	ON sales.product_id = menu.product_id
-	WHERE sales.order_date < members.join_date
-	ORDER BY members.join_date ASC, sales.order_date DESC
+  SELECT
+    members.customer_id,
+    menu.product_name,
+    members.join_date,
+    sales.order_date,
+    DENSE_RANK() OVER (PARTITION BY members.customer_id
+      ORDER BY sales.order_date DESC) AS rank
+  FROM dannys_diner.sales
+  JOIN dannys_diner.members
+    ON sales.customer_id = members.customer_id
+  JOIN dannys_diner.menu
+    ON sales.product_id = menu.product_id
+  WHERE sales.order_date < members.join_date
+  ORDER BY members.join_date ASC, sales.order_date DESC
 ) AS answer7
 WHERE rank = 1
 ORDER BY product_name ASC, customer_id ASC
@@ -218,25 +218,50 @@ ORDER BY product_name ASC, customer_id ASC
 **8. What is the total items and amount spent for each member before they became a member?**
 
 ```sql
+SELECT
+  sales.customer_id,
+  COUNT(sales.product_id) AS product_total,
+  SUM(menu.price) AS price_total
+FROM dannys_diner.sales
+JOIN dannys_diner.menu
+  ON sales.product_id = menu.product_id
+JOIN dannys_diner.members
+  ON sales.customer_id = members.customer_id
+WHERE sales.order_date < members.join_date
+GROUP BY sales.customer_id
+ORDER BY sales.customer_id ASC;
 ```
 **Answer:**
-| customer_id | total |
-|---|---|
-| A | 76 |
-| B | 74 |
-| C | 36 |
+| customer_id | product_total | price_total |
+|---|---|---|
+| A | 2 | 25 |
+| B | 3 | 40 | 
 <br>
 
 **9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?**
 
 ```sql
+SELECT
+  customer_id,
+  COALESCE(x1, 0) + COALESCE(x2, 0) AS point_total
+FROM (
+  SELECT
+    sales.customer_id, 
+    SUM(menu.price) FILTER (WHERE sales.product_id > 1)*10 AS x1,
+    SUM(menu.price) FILTER (WHERE sales.product_id = 1)*20 AS x2
+  FROM dannys_diner.sales
+  JOIN dannys_diner.menu
+    ON sales.product_id = menu.product_id
+  GROUP BY sales.customer_id
+  ORDER BY sales.customer_id ASC
+) AS answer9;
 ```
 **Answer:**
-| customer_id | total |
+| customer_id | point_total |
 |---|---|
-| A | 76 |
-| B | 74 |
-| C | 36 |
+| A | 860 |
+| B | 940 |
+| C | 360 |
 <br>
 
 **10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?**
