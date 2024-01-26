@@ -268,23 +268,32 @@ FROM (
 
 ```sql
 SELECT
-  sales.customer_id, 
-  SUM(menu.price) FILTER (WHERE sales.order_date BETWEEN members.join_date AND members.join_date + INTERVAL '7 DAYS')*20 AS x1
+  sales.customer_id,
+  SUM(CASE
+      WHEN EXTRACT(MONTH FROM sales.order_date) = 1 THEN
+        CASE
+          WHEN sales.order_date >= members.join_date
+          AND sales.order_date <= members.join_date + INTERVAL '1 week' THEN
+            menu.price * 20
+          WHEN sales.product_id = 1 THEN
+            menu.price * 20
+          ELSE
+            menu.price * 10
+          END
+      END) AS point_total
 FROM dannys_diner.sales
-JOIN dannys_diner.menu
-  ON sales.product_id = menu.product_id
 JOIN dannys_diner.members
   ON sales.customer_id = members.customer_id
-WHERE EXTRACT (MONTH FROM sales.order_date) = 1
+JOIN dannys_diner.menu
+  ON sales.product_id = menu.product_id
 GROUP BY sales.customer_id
 ORDER BY sales.customer_id ASC
 ```
 **Answer:**
-| customer_id | total |
+| customer_id | point_total |
 |---|---|
-| A | 76 |
-| B | 74 |
-| C | 36 |
+| A | 1370 |
+| B | 940 |
 <br>
 
 **Bonus Questions:**
