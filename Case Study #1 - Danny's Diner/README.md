@@ -267,6 +267,17 @@ FROM (
 **10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?**
 
 ```sql
+SELECT
+  sales.customer_id, 
+  SUM(menu.price) FILTER (WHERE sales.order_date BETWEEN members.join_date AND members.join_date + INTERVAL '7 DAYS')*20 AS x1
+FROM dannys_diner.sales
+JOIN dannys_diner.menu
+  ON sales.product_id = menu.product_id
+JOIN dannys_diner.members
+  ON sales.customer_id = members.customer_id
+WHERE EXTRACT (MONTH FROM sales.order_date) = 1
+GROUP BY sales.customer_id
+ORDER BY sales.customer_id ASC
 ```
 **Answer:**
 | customer_id | total |
