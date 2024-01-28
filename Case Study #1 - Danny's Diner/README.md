@@ -27,7 +27,7 @@ Danny aims to leverage the provided data to analyze customers' visiting and spen
 
 ## Questions and Solutions
 
-The questions were answered using PostgreSQL 15.
+The questions were answered using PostgreSQL.
 
 **1. What is the total amount each customer spent at the restaurant?**
 
