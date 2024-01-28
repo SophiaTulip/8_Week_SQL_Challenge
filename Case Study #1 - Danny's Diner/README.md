@@ -83,7 +83,7 @@ FROM (
 ) AS answer3
 WHERE rank = 1
 GROUP BY product_name, customer_id
-ORDER BY customer_id ASC
+ORDER BY customer_id ASC;
 ```
 **Answer:**
 | customer_id | product_name |
@@ -135,7 +135,7 @@ FROM (
   GROUP BY sales.customer_id, menu.product_name
 ) AS answer5
 WHERE rank = 1
-ORDER BY customer_id ASC, product_name ASC
+ORDER BY customer_id ASC, product_name ASC;
 ```
 **Answer:**
 | customer_id | product_name | num_of_purchases |
@@ -169,7 +169,7 @@ FROM(
   WHERE sales.order_date >= members.join_date
   ORDER BY members.join_date ASC, sales.order_date ASC
 ) AS answer6
-WHERE rank = 1
+WHERE rank = 1;
 ```
 **Answer:**
 | customer_id | product_name |
@@ -203,7 +203,7 @@ FROM (
   ORDER BY members.join_date ASC, sales.order_date DESC
 ) AS answer7
 WHERE rank = 1
-ORDER BY product_name ASC, customer_id ASC
+ORDER BY product_name ASC, customer_id ASC;
 ```
 **Answer:**
 | customer_id | product_name |
@@ -287,7 +287,7 @@ JOIN dannys_diner.members
 JOIN dannys_diner.menu
   ON sales.product_id = menu.product_id
 GROUP BY sales.customer_id
-ORDER BY sales.customer_id ASC
+ORDER BY sales.customer_id ASC;
 ```
 **Answer:**
 | customer_id | point_total |
@@ -298,10 +298,17 @@ ORDER BY sales.customer_id ASC
 
 **Bonus Questions:**
 
+**<ins>Join All The Things</ins>**
+
+Recreate the following table output using the available data:
+
+<img width="500" alt="danny1-2" src="https://github.com/SophiaTulip/8_Week_SQL_Challenge/assets/157422079/45118900-99be-4660-8576-943271aaf875">
+
+**Answer:**
 ```sql
 SELECT
   sales.customer_id,
-  sales.order_date,
+  TO_CHAR(sales.order_date, 'YYYY/MM/DD') as order_date,
   menu.product_name,
   menu.price,
   CASE
@@ -312,5 +319,38 @@ LEFT JOIN dannys_diner.members
   ON sales.customer_id = members.customer_id
 JOIN dannys_diner.menu
   ON sales.product_id = menu.product_id
-ORDER BY sales.customer_id ASC, sales.order_date ASC, menu.product_name ASC
+ORDER BY sales.customer_id ASC, sales.order_date ASC, menu.product_name ASC;
+```
+**<ins>Rank All The Things</ins>**
+
+Danny also requires further information about the ranking of customer products, he expects nulls for non-members.<br>
+Recreate the following table:
+
+<img width="500" alt="danny1-3" src="https://github.com/SophiaTulip/8_Week_SQL_Challenge/assets/157422079/cca6aff8-b1f3-4c3a-a869-12e501849e10">
+
+**Answer:**
+```sql
+SELECT
+  *,
+  CASE
+    WHEN member = 'N' THEN NULL
+     ELSE RANK () OVER (PARTITION BY customer_id, member ORDER BY order_date)
+    END AS ranking
+FROM (
+  SELECT
+    sales.customer_id,
+    TO_CHAR(sales.order_date, 'YYYY/MM/DD') as order_date,
+    menu.product_name,
+    menu.price,
+    CASE
+      WHEN sales.order_date >= members.join_date THEN 'Y'
+      ELSE 'N'
+     END AS member
+  FROM dannys_diner.sales
+	LEFT JOIN dannys_diner.members
+    ON sales.customer_id = members.customer_id
+	JOIN dannys_diner.menu
+    ON sales.product_id = menu.product_id
+  ORDER BY sales.customer_id ASC, sales.order_date ASC, menu.product_name ASC
+) AS bonus2;
 ```
