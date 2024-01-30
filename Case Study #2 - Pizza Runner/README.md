@@ -1,4 +1,4 @@
-# Case Study #1 - Pizza Runner
+# Case Study #2 - Pizza Runner
 
 <img width="500" alt="ERD2" src="https://github.com/SophiaTulip/8_Week_SQL_Challenge/assets/157422079/8604923e-ad4c-449b-a4ed-ef281ced71ed">
 
@@ -29,9 +29,15 @@ Enhance efficiency in Danny's Pizza Runner's operations by cleaning the data and
 
 ## Questions and Solutions
 
-The questions were answered using PostgreSQL.
+- [A. Pizza Metrics](#pizza-metrics)
+- [B. Runner and Customer Experience](#runner-and-customer-experience)
+- [C. Ingredient Optimisation](#ingredient-optimisation)
+- [D. Pricing and Ratings](#pricing-and-rating)
+- [E. Bonus DML Challenges](#bonus-dml-challenges)
 
-**1. What is the total amount each customer spent at the restaurant?**
+## A. Pizza Metrics
+
+**1. How many pizzas were ordered?**
 
 ```sql
 SELECT
@@ -51,7 +57,7 @@ ORDER BY sales.customer_id ASC;
 | C | 36 |
 <br>
 
-**2. How many days has each customer visited the restaurant?**
+**2. How many unique customer orders were made?**
 ```sql
 SELECT
   customer_id,
@@ -67,7 +73,7 @@ GROUP BY customer_id;
 | C | 2 |
 <br>
 
-**3. What was the first item from the menu purchased by each customer?**
+**3. How many successful orders were delivered by each runner?**
 
 ```sql
 SELECT
@@ -98,7 +104,7 @@ ORDER BY customer_id ASC;
 *Customer A purchased 2 products in their order.*
 <br>
 
-**4. What is the most purchased item on the menu and how many times was it purchased by all customers?**
+**4. How many of each type of pizza was delivered?**
 
 ```sql
 SELECT
@@ -117,7 +123,7 @@ SELECT
 | ramen | 8 |
 <br>
 
-**5. Which item was the most popular for each customer?**
+**5. How many Vegetarian and Meatlovers were ordered by each customer?**
 
 ```sql
 SELECT
@@ -149,7 +155,7 @@ ORDER BY customer_id ASC, product_name ASC;
 | C | ramen | 3 |
 <br>
 
-**6. Which item was purchased first by the customer after they became a member?**
+**6. What was the maximum number of pizzas delivered in a single order?**
 
 ```sql
 SELECT
@@ -182,7 +188,7 @@ WHERE rank = 1;
 *Given the absence of timestamps, I used a >= operator because Customer A joined the loyalty program on the same day as placing an order.*
 <br>
 
-**7. Which item was purchased just before the customer became a member?**
+**7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?**
 
 ```sql
 SELECT
@@ -217,7 +223,7 @@ ORDER BY product_name ASC, customer_id ASC;
 *Customer A purchased 2 products in their order.*
 <br>
 
-**8. What is the total items and amount spent for each member before they became a member?**
+**8. How many pizzas were delivered that had both exclusions and extras?**
 
 ```sql
 SELECT
@@ -240,7 +246,7 @@ ORDER BY sales.customer_id ASC;
 | B | 3 | 40 | 
 <br>
 
-**9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?**
+**9. What was the total volume of pizzas ordered for each hour of the day?**
 
 ```sql
 SELECT
@@ -266,7 +272,7 @@ FROM (
 | C | 360 |
 <br>
 
-**10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?**
+**10. What was the volume of orders for each day of the week?**
 
 ```sql
 SELECT
@@ -298,62 +304,12 @@ ORDER BY sales.customer_id ASC;
 | B | 940 |
 <br>
 
-**Bonus Questions:**
+## B. Runner and Customer Experience
 
-**<ins>Join All The Things</ins>**
+## C. Ingredient Optimisation
 
-Recreate the following table output using the available data:
+## D. Pricing and Ratings
 
-<img width="500" alt="danny1-2" src="https://github.com/SophiaTulip/8_Week_SQL_Challenge/assets/157422079/45118900-99be-4660-8576-943271aaf875">
-
-**Answer:**
-```sql
-SELECT
-  sales.customer_id,
-  TO_CHAR(sales.order_date, 'YYYY/MM/DD') as order_date,
-  menu.product_name,
-  menu.price,
-  CASE
-    WHEN sales.order_date >= members.join_date THEN 'Y'
-    ELSE 'N' END AS member
-FROM dannys_diner.sales
-LEFT JOIN dannys_diner.members
-  ON sales.customer_id = members.customer_id
-JOIN dannys_diner.menu
-  ON sales.product_id = menu.product_id
-ORDER BY sales.customer_id ASC, sales.order_date ASC, menu.product_name ASC;
-```
-**<ins>Rank All The Things</ins>**
-
-Danny also requires further information about the ranking of customer products, he expects nulls for non-members.<br>
-Recreate the following table:
-
-<img width="500" alt="danny1-3" src="https://github.com/SophiaTulip/8_Week_SQL_Challenge/assets/157422079/cca6aff8-b1f3-4c3a-a869-12e501849e10">
-
-**Answer:**
-```sql
-SELECT
-  *,
-  CASE
-    WHEN member = 'N' THEN NULL
-     ELSE RANK () OVER (PARTITION BY customer_id, member ORDER BY order_date)
-    END AS ranking
-FROM (
-  SELECT
-    sales.customer_id,
-    TO_CHAR(sales.order_date, 'YYYY/MM/DD') as order_date,
-    menu.product_name,
-    menu.price,
-    CASE
-      WHEN sales.order_date >= members.join_date THEN 'Y'
-      ELSE 'N'
-     END AS member
-  FROM dannys_diner.sales
-	LEFT JOIN dannys_diner.members
-    ON sales.customer_id = members.customer_id
-	JOIN dannys_diner.menu
-    ON sales.product_id = menu.product_id
-  ORDER BY sales.customer_id ASC, sales.order_date ASC, menu.product_name ASC
-) AS bonus2;
-```
+## E. Bonus DML Challenges 
+(DML = Data Manipulation Language)
 
