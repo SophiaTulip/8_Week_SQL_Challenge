@@ -29,11 +29,11 @@ Enhance efficiency in Danny's Pizza Runner's operations by cleaning the data and
 
 ## Questions and Solutions
 
-- [A. Pizza Metrics](#pizza-metrics)
-- [B. Runner and Customer Experience](#runner-and-customer-experience)
-- [C. Ingredient Optimisation](#ingredient-optimisation)
-- [D. Pricing and Ratings](#pricing-and-rating)
-- [E. Bonus DML Challenges](#bonus-dml-challenges)
+- [A. Pizza Metrics](#a-pizza-metrics)
+- [B. Runner and Customer Experience](#b-runner-and-customer-experience)
+- [C. Ingredient Optimisation](#c-ingredient-optimisation)
+- [D. Pricing and Ratings](#d-pricing-and-ratings)
+- [E. Bonus DML Challenges](#e-bonus-dml-challenges)
 
 ## A. Pizza Metrics
 
