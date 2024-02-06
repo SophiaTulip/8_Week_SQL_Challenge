@@ -1,6 +1,6 @@
 # Case Study #3 - Foodie-Fi
 
-<img width="500" alt="ERD2" src="https://github.com/SophiaTulip/8_Week_SQL_Challenge/assets/157422079/56e0530d-3b8d-4091-adda-dd9faeb5d008">
+<img width="500" src="https://github.com/SophiaTulip/8_Week_SQL_Challenge/assets/157422079/56e0530d-3b8d-4091-adda-dd9faeb5d008">
 
 
 ## Table of Contents
