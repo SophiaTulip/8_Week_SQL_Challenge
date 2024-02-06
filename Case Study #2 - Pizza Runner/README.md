@@ -308,29 +308,38 @@ ORDER BY DAYOFWEEK(co.order_time);
 **1. How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)**
 
 ```sql
-
+SELECT 
+  DATE_ADD('2021-01-01', INTERVAL (FLOOR(DATEDIFF(r.registration_date, '2021-01-01') / 7) * 7) DAY) AS week_of,
+  COUNT(*) AS sign_ups
+FROM pizza_runner.runners AS r
+GROUP BY FLOOR(DATEDIFF(r.registration_date, '2021-01-01') / 7)
+ORDER BY week_of;
 ```
 **Answer:**
-| customer_id | column2 |
+| week_of | sign_ups |
 |---|---|
-| 101 | example |
-| 101 | example |
-| 102 | example |
-| 102 | example |
+| 2021-01-01 | 2 |
+| 2021-01-08 | 1 |
+| 2021-01-15 | 1 |
 <br>
 
 **2. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?**
 
 ```sql
-
+SELECT
+  ro.runner_id,
+  ROUND(AVG(TIMESTAMPDIFF(MINUTE, co.order_time, ro.pickup_time))) AS avg_time
+FROM pizza_runner.runner_orders_cln AS ro
+JOIN pizza_runner.customer_orders_cln AS co
+  ON ro.order_id = co.order_id
+GROUP BY ro.runner_id;
 ```
 **Answer:**
-| customer_id | column2 |
+| runner_id | avg_time |
 |---|---|
-| 101 | example |
-| 101 | example |
-| 102 | example |
-| 102 | example |
+| 1 | 15 |
+| 2 | 23 |
+| 3 | 10 |
 <br>
 
 **3. Is there any relationship between the number of pizzas and how long the order takes to prepare?**
