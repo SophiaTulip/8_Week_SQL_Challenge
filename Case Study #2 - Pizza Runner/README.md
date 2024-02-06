@@ -29,11 +29,75 @@ Enhance efficiency in Danny's Pizza Runner's operations by cleaning the data and
 
 ## Questions and Solutions
 
+Recreated the dataset in MySQL to solve this week's questions.
+
 - [A. Pizza Metrics](#a-pizza-metrics)
 - [B. Runner and Customer Experience](#b-runner-and-customer-experience)
 - [C. Ingredient Optimisation](#c-ingredient-optimisation)
 - [D. Pricing and Ratings](#d-pricing-and-ratings)
 - [E. Bonus DML Challenges](#e-bonus-dml-challenges)
+
+## Cleaning the Data
+
+```sql
+-- Created a temp table to remove null values
+CREATE TEMPORARY TABLE customer_orders_cln AS
+SELECT 
+  order_id, 
+  customer_id, 
+  pizza_id, 
+  CASE
+    WHEN exclusions IS null OR exclusions LIKE 'null' THEN ''
+    ELSE exclusions
+  END AS exclusions,
+  CASE
+    WHEN extras IS NULL or extras LIKE 'null' THEN ''
+    ELSE extras
+  END AS extras,
+  order_time
+FROM pizza_runner.customer_orders;
+
+-- Noticed the date was 2020 when it should be 2021
+UPDATE customer_orders_cln
+SET order_time = date_add(order_time, INTERVAL 1 YEAR);
+
+-- Created a temp table to set real null values in order to change datatypes, remove other null values and trim units of measurement, moved the units into the column header 
+CREATE TEMPORARY TABLE runner_orders_cln AS
+SELECT 
+  order_id, 
+  runner_id,  
+  CASE
+    WHEN pickup_time = 'null' THEN NULL
+    ELSE pickup_time
+  END AS pickup_time,
+  CASE
+    WHEN distance LIKE 'null' THEN NULL
+    WHEN distance LIKE '%km' THEN TRIM('km' from distance)
+    ELSE distance 
+  END AS distance_km,
+  CASE
+    WHEN duration LIKE 'null' THEN NULL
+    WHEN duration LIKE '%mins' THEN TRIM('mins' from duration)
+    WHEN duration LIKE '%minute' THEN TRIM('minute' from duration)
+    WHEN duration LIKE '%minutes' THEN TRIM('minutes' from duration)
+    ELSE duration
+  END AS duration_mins,
+  CASE
+    WHEN cancellation IS NULL or cancellation LIKE 'null' THEN ''
+    ELSE cancellation
+  END AS cancellation
+FROM pizza_runner.runner_orders;
+
+-- Changed columns from varchar datatype to following
+ALTER TABLE runner_orders_cln
+MODIFY COLUMN pickup_time TIMESTAMP,
+MODIFY COLUMN distance_km FLOAT,
+MODIFY COLUMN duration_mins INT;
+
+-- Noticed the date was 2020 when it should be 2021
+UPDATE runner_orders_cln
+SET pickup_time = date_add(pickup_time, INTERVAL 1 YEAR);
+```
 
 ## A. Pizza Metrics
 
@@ -41,267 +105,202 @@ Enhance efficiency in Danny's Pizza Runner's operations by cleaning the data and
 
 ```sql
 SELECT
-  sales.customer_id,
-  SUM(menu.price) AS total
-FROM dannys_diner.sales
-JOIN dannys_diner.menu
-  ON sales.product_id = menu.product_id
-GROUP BY sales.customer_id
-ORDER BY sales.customer_id ASC;
+  count(order_id) AS pizza_tot
+FROM pizza_runner.customer_orders_cln;
 ```
 **Answer:**
-| customer_id | total |
-|---|---|
-| A | 76 |
-| B | 74 |
-| C | 36 |
+| pizza_tot|
+|---|
+| 14 |
 <br>
 
 **2. How many unique customer orders were made?**
 ```sql
 SELECT
-  customer_id,
-  COUNT(DISTINCT order_date) AS total_visits
-FROM dannys_diner.sales
-GROUP BY customer_id;
+  count(DISTINCT customer_id) AS unique_customers
+FROM pizza_runner.customer_orders_cln;
 ```
 **Answer:**
-| customer_id | total_visits |
-|---|---|
-| A | 4 |
-| B | 6 |
-| C | 2 |
+| unique_customers |
+|---|
+| 5 |
 <br>
 
 **3. How many successful orders were delivered by each runner?**
 
 ```sql
 SELECT
-  customer_id,
-  product_name
-FROM (
-  SELECT
-    sales.customer_id,
-    menu.product_name,
-    sales.order_date,
-    DENSE_RANK() OVER (ORDER BY sales.order_date ASC) AS rank
-  FROM dannys_diner.sales
-  JOIN dannys_diner.menu
-    ON sales.product_id = menu.product_id
-) AS answer3
-WHERE rank = 1
-GROUP BY product_name, customer_id
-ORDER BY customer_id ASC;
+  runner_id,
+  count(order_id) AS successful_orders
+FROM pizza_runner.runner_orders_cln
+WHERE cancellation NOT LIKE '%cancellation%'
+GROUP BY runner_id
+ORDER BY runner_id ASC;
 ```
 **Answer:**
-| customer_id | product_name |
+| runner_id | successful_orders |
 |---|---|
-| A | curry |
-| A | sushi |
-| B | curry |
-| C | ramen |
-
-*Customer A purchased 2 products in their order.*
+| 1 | 4 |
+| 2 | 3 |
+| 3 | 1 |
 <br>
 
 **4. How many of each type of pizza was delivered?**
 
 ```sql
 SELECT
-  menu.product_name,
-  COUNT (sales.product_id) AS num_of_purchases
- FROM dannys_diner.sales
- JOIN dannys_diner.menu
-  ON sales.product_id = menu.product_id
- GROUP BY menu.product_name
- ORDER BY num_of_purchases DESC
- LIMIT 1;
+  pn.pizza_name,
+  count(co.pizza_id) AS pizza_type_tot
+FROM pizza_runner.customer_orders_cln AS co
+JOIN pizza_runner.pizza_names AS pn
+  ON co.pizza_id = pn.pizza_id
+JOIN pizza_runner.runner_orders_cln AS ro
+  ON co.order_id = ro.order_id
+WHERE ro.cancellation NOT LIKE '%cancellation%'
+GROUP BY pn.pizza_name;
 ```
 **Answer:**
-| product_name | num_of_purchases |
+| pizza_name | pizza_type_tot |
 |---|---|
-| ramen | 8 |
+| Meatlovers | 9 |
+| Vegetarian | 3 |
 <br>
 
 **5. How many Vegetarian and Meatlovers were ordered by each customer?**
 
 ```sql
 SELECT
-  customer_id,
-  product_name,
-  num_of_purchases
-FROM (
-  SELECT 
-    sales.customer_id, 
-    menu.product_name, 
-    COUNT(menu.product_id) AS num_of_purchases,
-    DENSE_RANK() OVER (PARTITION BY sales.customer_id
-      ORDER BY COUNT(sales.customer_id) DESC) AS rank
-  FROM dannys_diner.menu
-  INNER JOIN dannys_diner.sales
-    ON menu.product_id = sales.product_id
-  GROUP BY sales.customer_id, menu.product_name
-) AS answer5
-WHERE rank = 1
-ORDER BY customer_id ASC, product_name ASC;
+  co.customer_id,
+  pn.pizza_name,
+  count(co.pizza_id) AS pizza_type_tot
+FROM pizza_runner.customer_orders_cln AS co
+JOIN pizza_runner.pizza_names AS pn
+  ON co.pizza_id = pn.pizza_id
+GROUP BY co.customer_id, pn.pizza_name
+ORDER BY co.customer_id ASC;
 ```
 **Answer:**
-| customer_id | product_name | num_of_purchases |
+| customer_id | pizza_name | pizza_type_tot |
 |---|---|---|
-| A | ramen | 3 |
-| B | curry | 2 |
-| B | ramen | 2 |
-| B | sushi | 2 |
-| C | ramen | 3 |
+| 101 | Meatlovers | 2 |
+| 101 | Vegetarian | 1 |
+| 102 | Meatlovers | 2 |
+| 102 | Vegetarian | 1 |
+| 103 | Meatlovers | 3 |
+| 103 | Vegetarian | 1 |
+| 104 | Meatlovers | 3 |
+| 105 | Vegetarian | 1 |
 <br>
 
 **6. What was the maximum number of pizzas delivered in a single order?**
 
 ```sql
 SELECT
-  customer_id,
-  product_name
-FROM(
-  SELECT
-    members.customer_id,
-    menu.product_name,
-    members.join_date,
-    sales.order_date,
-    DENSE_RANK() OVER (PARTITION BY members.customer_id
-      ORDER BY sales.order_date) AS rank
-  FROM dannys_diner.sales
-  JOIN dannys_diner.members
-    ON sales.customer_id = members.customer_id
-  JOIN dannys_diner.menu
-    ON sales.product_id = menu.product_id
-  WHERE sales.order_date >= members.join_date
-  ORDER BY members.join_date ASC, sales.order_date ASC
-) AS answer6
-WHERE rank = 1;
+  count(co.pizza_id) AS max_pizzas_del
+FROM pizza_runner.customer_orders_cln AS co
+JOIN pizza_runner.runner_orders_cln AS ro
+  ON co.order_id = ro.order_id
+WHERE ro.cancellation NOT LIKE '%cancellation%'
+GROUP BY co.order_id
+ORDER BY max_pizzas_del DESC
+LIMIT 1;
 ```
 **Answer:**
-| customer_id | product_name |
-|---|---|
-| A | curry |
-| B | sushi |
-
-*Given the absence of timestamps, I used a >= operator because Customer A joined the loyalty program on the same day as placing an order.*
+| max_pizzas_del |
+|---|
+| 3 |
 <br>
 
 **7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?**
 
 ```sql
 SELECT
-  customer_id,
-  product_name
-FROM (
-  SELECT
-    members.customer_id,
-    menu.product_name,
-    members.join_date,
-    sales.order_date,
-    DENSE_RANK() OVER (PARTITION BY members.customer_id
-      ORDER BY sales.order_date DESC) AS rank
-  FROM dannys_diner.sales
-  JOIN dannys_diner.members
-    ON sales.customer_id = members.customer_id
-  JOIN dannys_diner.menu
-    ON sales.product_id = menu.product_id
-  WHERE sales.order_date < members.join_date
-  ORDER BY members.join_date ASC, sales.order_date DESC
-) AS answer7
-WHERE rank = 1
-ORDER BY product_name ASC, customer_id ASC;
+  co.customer_id,
+  count(CASE
+    WHEN co.exclusions NOT LIKE ''
+    OR co.extras NOT LIKE '' THEN 1
+    ELSE NULL
+  END) AS tot_changes,
+  count(CASE
+    WHEN co.exclusions LIKE ''
+    AND co.extras LIKE '' THEN 1
+    ELSE NULL
+  END) AS no_changes
+FROM pizza_runner.customer_orders_cln AS co
+JOIN pizza_runner.runner_orders_cln AS ro
+  ON co.order_id = ro.order_id
+WHERE ro.cancellation NOT LIKE '%cancellation%'
+GROUP BY co.customer_id
+ORDER BY co.customer_id ASC;
 ```
 **Answer:**
-| customer_id | product_name |
-|---|---|
-| A | curry |
-| A | sushi |
-| B | sushi |
-
-*Customer A purchased 2 products in their order.*
+| customer_id | tot_changes | no_changes |
+|---|---|---|
+| 101 | 0 | 2 |
+| 102 | 0 | 3 |
+| 103 | 3 | 0 |
+| 104 | 2 | 1 |
+| 105 | 1 | 0 |
 <br>
 
 **8. How many pizzas were delivered that had both exclusions and extras?**
 
 ```sql
 SELECT
-  sales.customer_id,
-  COUNT(sales.product_id) AS product_total,
-  SUM(menu.price) AS price_total
-FROM dannys_diner.sales
-JOIN dannys_diner.menu
-  ON sales.product_id = menu.product_id
-JOIN dannys_diner.members
-  ON sales.customer_id = members.customer_id
-WHERE sales.order_date < members.join_date
-GROUP BY sales.customer_id
-ORDER BY sales.customer_id ASC;
+  count(CASE
+    WHEN co.exclusions NOT LIKE ''
+    AND co.extras NOT LIKE '' THEN 1
+    ELSE NULL
+  END) AS pizzas_del
+FROM pizza_runner.customer_orders_cln AS co
+JOIN pizza_runner.runner_orders_cln AS ro
+  ON co.order_id = ro.order_id
+WHERE ro.cancellation NOT LIKE '%cancellation%';
 ```
 **Answer:**
-| customer_id | product_total | price_total |
-|---|---|---|
-| A | 2 | 25 |
-| B | 3 | 40 | 
+| pizzas_del |
+|---|
+| 1 | 
 <br>
 
 **9. What was the total volume of pizzas ordered for each hour of the day?**
 
 ```sql
 SELECT
-  customer_id,
-  COALESCE(x1, 0) + COALESCE(x2, 0) AS point_total
-FROM (
-  SELECT
-    sales.customer_id, 
-    SUM(menu.price) FILTER (WHERE sales.product_id > 1)*10 AS x1,
-    SUM(menu.price) FILTER (WHERE sales.product_id = 1)*20 AS x2
-  FROM dannys_diner.sales
-  JOIN dannys_diner.menu
-    ON sales.product_id = menu.product_id
-  GROUP BY sales.customer_id
-  ORDER BY sales.customer_id ASC
-) AS answer9;
+  DATE_FORMAT(co.order_time, '%H') AS order_hour,
+  count(pizza_id) AS tot_volume
+FROM pizza_runner.customer_orders_cln AS co
+GROUP BY order_hour
+ORDER BY order_hour ASC;
 ```
 **Answer:**
-| customer_id | point_total |
+| order_hour | tot_volume |
 |---|---|
-| A | 860 |
-| B | 940 |
-| C | 360 |
+| 11 | 1 |
+| 13 | 3 |
+| 18 | 3 |
+| 19 | 1 |
+| 21 | 3 |
+| 23 | 3 |
 <br>
 
 **10. What was the volume of orders for each day of the week?**
 
 ```sql
 SELECT
-  sales.customer_id,
-  SUM(CASE
-      WHEN EXTRACT(MONTH FROM sales.order_date) = 1 THEN
-        CASE
-          WHEN sales.order_date >= members.join_date
-          AND sales.order_date <= members.join_date + INTERVAL '1 week' THEN
-            menu.price * 20
-          WHEN sales.product_id = 1 THEN
-            menu.price * 20
-          ELSE
-            menu.price * 10
-          END
-      END) AS point_total
-FROM dannys_diner.sales
-JOIN dannys_diner.members
-  ON sales.customer_id = members.customer_id
-JOIN dannys_diner.menu
-  ON sales.product_id = menu.product_id
-GROUP BY sales.customer_id
-ORDER BY sales.customer_id ASC;
+  DAYNAME(co.order_time) AS day_of_week,
+  count(pizza_id) AS tot_volume
+FROM pizza_runner.customer_orders_cln AS co
+GROUP BY day_of_week
+ORDER BY DAYOFWEEK(co.order_time);
 ```
 **Answer:**
-| customer_id | point_total |
+| day_of_week | tot_volume |
 |---|---|
-| A | 1370 |
-| B | 940 |
+| Sunday | 1 |
+| Monday | 5 |
+| Friday | 5 |
+| Saturday | 3 |
 <br>
 
 ## B. Runner and Customer Experience
