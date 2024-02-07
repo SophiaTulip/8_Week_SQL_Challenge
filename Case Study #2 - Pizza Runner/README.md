@@ -345,29 +345,50 @@ GROUP BY ro.runner_id;
 **3. Is there any relationship between the number of pizzas and how long the order takes to prepare?**
 
 ```sql
-
+SELECT
+num_of_pizzas,
+ROUND(AVG(avg_time)) AS avg_prep_time
+FROM (
+  SELECT
+    co.order_id,
+    COUNT(co.pizza_id) AS num_of_pizzas,
+    TIMESTAMPDIFF(MINUTE, co.order_time, ro.pickup_time) AS avg_time
+  FROM pizza_runner.runner_orders_cln AS ro
+  JOIN pizza_runner.customer_orders_cln AS co
+    ON ro.order_id = co.order_id
+  WHERE ro.cancellation NOT LIKE '%cancellation%'
+  GROUP BY co.order_id
+) AS answerB3
+GROUP BY num_of_pizzas;
 ```
 **Answer:**
-| customer_id | column2 |
+| num_of_pizzas | avg_prep_time |
 |---|---|
-| 101 | example |
-| 101 | example |
-| 102 | example |
-| 102 | example |
+| 1 | 12 |
+| 2 | 18 |
+| 3 | 29 |
 <br>
 
 **4. What was the average distance travelled for each customer?**
 
 ```sql
-
+SELECT
+  co.customer_id,
+  ROUND(AVG(ro.distance_km), 2) AS avg_distance_km
+FROM pizza_runner.runner_orders_cln AS ro
+JOIN pizza_runner.customer_orders_cln AS co
+  ON ro.order_id = co.order_id
+GROUP BY co.customer_id
+ORDER BY customer_id ASC;
 ```
 **Answer:**
-| customer_id | column2 |
+| customer_id | avg_distance_km |
 |---|---|
-| 101 | example |
-| 101 | example |
-| 102 | example |
-| 102 | example |
+| 101 | 20 |
+| 102 | 16.73 |
+| 103 | 23.4 |
+| 104 | 10 |
+| 105 | 25 |
 <br>
 
 **5. What was the difference between the longest and shortest delivery times for all orders?**
