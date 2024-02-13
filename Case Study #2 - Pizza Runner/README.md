@@ -34,8 +34,6 @@ Recreated the dataset in MySQL to solve this week's questions.
 - [A. Pizza Metrics](#a-pizza-metrics)
 - [B. Runner and Customer Experience](#b-runner-and-customer-experience)
 - [C. Ingredient Optimisation](#c-ingredient-optimisation)
-- [D. Pricing and Ratings](#d-pricing-and-ratings)
-- [E. Bonus DML Challenges](#e-bonus-dml-challenges)
 
 ## Cleaning the Data
 
@@ -394,49 +392,163 @@ ORDER BY customer_id ASC;
 **5. What was the difference between the longest and shortest delivery times for all orders?**
 
 ```sql
-
+SELECT
+  MAX(ro.duration_mins) - MIN(ro.duration_mins) AS difference_mins
+FROM pizza_runner.runner_orders_cln AS ro
+WHERE ro.cancellation NOT LIKE '%cancellation%';
 ```
 **Answer:**
-| customer_id | column2 |
-|---|---|
-| 101 | example |
-| 101 | example |
-| 102 | example |
-| 102 | example |
+| difference_mins |
+|---|
+| 30 |
 <br>
 
 **6. What was the average speed for each runner for each delivery and do you notice any trend for these values?**
 
 ```sql
-
+SELECT
+  ro.runner_id,
+ROUND(ro.distance_km / (ro.duration_mins / 60), 2) AS avg_speed_kph
+FROM pizza_runner.runner_orders_cln AS ro
+WHERE ro.cancellation NOT LIKE '%cancellation%';
 ```
 **Answer:**
-| customer_id | column2 |
+| runner_id | avg_speed_kph |
 |---|---|
-| 101 | example |
-| 101 | example |
-| 102 | example |
-| 102 | example |
+| 1 | 37.5 |
+| 1 | 44.44 |
+| 1 | 40.2 |
+| 2 | 35.1 |
+| 3 | 40 |
+| 2 | 60 |
+| 2 | 93.6 |
+| 1 | 60 |
 <br>
 
 **7. What is the successful delivery percentage for each runner?**
 
 ```sql
-
+SELECT
+runner_id,
+ROUND(AVG(success) * 100) AS percentage
+FROM (
+  SELECT
+    ro.runner_id,
+    CASE
+      WHEN ro.duration_mins NOT LIKE '' THEN 1
+      ELSE 0
+    END AS success
+  FROM pizza_runner.runner_orders_cln AS ro
+) AS answerB7
+GROUP BY runner_id;
 ```
 **Answer:**
-| customer_id | column2 |
+| runner_id | percentage |
 |---|---|
-| 101 | example |
-| 101 | example |
-| 102 | example |
-| 102 | example |
+| 1 | 100 |
+| 2 | 75 |
+| 3 | 50 |
 <br>
 
 ## C. Ingredient Optimisation
 
-## D. Pricing and Ratings
+**1. What are the standard ingredients for each pizza?**
 
-## E. Bonus DML Challenges 
-(DML = Data Manipulation Language)
+```sql
+WITH pizza_recipes_temp AS (
+SELECT 
+  pizza_id,
+  SUBSTRING_INDEX(SUBSTRING_INDEX(toppings, ',', n), ',', -1) AS topping_id
+FROM pizza_runner.pizza_recipes
+JOIN (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8) AS numbers
+  ON CHAR_LENGTH(toppings) - CHAR_LENGTH(REPLACE(toppings, ',', '')) >= n - 1
+ORDER BY pizza_id)
 
+SELECT
+  pn.pizza_name,
+  pt.topping_name
+FROM pizza_runner.pizza_names AS pn
+JOIN pizza_recipes_temp AS pr
+  ON pn.pizza_id = pr.pizza_id
+JOIN pizza_runner.pizza_toppings AS pt
+  ON pr.topping_id = pt.topping_id
+ORDER BY pn.pizza_name, pt.topping_name;
+```
+**Answer:**
+| pizza_name | topping_name |
+|---|---|
+| Meatlovers | Bacon |
+| Meatlovers | BBQ Sauce |
+| Meatlovers | Beef |
+| Meatlovers | Cheese |
+| Meatlovers | Chicken |
+| Meatlovers | Mushrooms |
+| Meatlovers | Pepperoni |
+| Meatlovers | Salami |
+| Vegetarian | Cheese |
+| Vegetarian | Mushrooms |
+| Vegetarian | Onions |
+| Vegetarian | Peppers |
+| Vegetarian | Tomato Sauce |
+| Vegetarian | Tomatoes |
+<br>
+
+**2. What was the most commonly added extra?**
+
+```sql
+WITH extras_temp AS (
+SELECT
+  order_id,
+  TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(extras, ',', n), ',', -1)) AS extras
+FROM pizza_runner.customer_orders_cln
+JOIN (SELECT 1 AS n UNION ALL SELECT 2) AS numbers
+  ON CHAR_LENGTH(extras) - CHAR_LENGTH(REPLACE(extras, ',', '')) >= n - 1
+WHERE TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(extras, ',', numbers.n), ',', -1)) != '')
+  
+SELECT
+  pt.topping_name AS extras_name,
+  COUNT(extras) as total
+FROM extras_temp
+JOIN pizza_runner.pizza_toppings AS pt
+  ON extras_temp.extras = pt.topping_id
+WHERE extras IS NOT NULL
+GROUP BY extras
+ORDER BY total DESC;
+```
+**Answer:**
+| extras_name | total |
+|---|---|
+| Bacon | 4 |
+| Chicken | 1 |
+| Cheese | 1 |
+<br>
+
+**3. What was the most common exclusion?**
+
+```sql
+WITH exclusions_temp AS (
+SELECT
+  order_id,
+  TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(exclusions, ',', n), ',', -1)) AS exclusions
+FROM pizza_runner.customer_orders_cln
+JOIN (SELECT 1 AS n UNION ALL SELECT 2) AS numbers
+  ON CHAR_LENGTH(exclusions) - CHAR_LENGTH(REPLACE(exclusions, ',', '')) >= n - 1
+WHERE TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(exclusions, ',', numbers.n), ',', -1)) != '')
+  
+SELECT
+   pt.topping_name AS exclusions_name,
+  COUNT(exclusions) as total
+FROM exclusions_temp
+JOIN pizza_runner.pizza_toppings AS pt
+  ON exclusions_temp.exclusions = pt.topping_id
+WHERE exclusions IS NOT NULL
+GROUP BY exclusions
+ORDER BY total DESC;
+```
+**Answer:**
+| exclusions_name | total |
+|---|---|
+| Cheese | 4 |
+| Mushrooms | 1 |
+| BBQ Sauce | 1 |
+<br>
