@@ -38,8 +38,8 @@ Recreated the dataset in MySQL to solve this week's questions.
 ## Cleaning the Data
 
 ```sql
--- Created a temp table to remove null values
-CREATE TEMPORARY TABLE customer_orders_cln AS
+-- Created a table to remove null values
+CREATE TABLE customer_orders_cln AS
 SELECT 
   order_id, 
   customer_id, 
@@ -59,8 +59,8 @@ FROM pizza_runner.customer_orders;
 UPDATE customer_orders_cln
 SET order_time = date_add(order_time, INTERVAL 1 YEAR);
 
--- Created a temp table to set real null values in order to change datatypes, remove other null values and trim units of measurement, moved the units into the column header 
-CREATE TEMPORARY TABLE runner_orders_cln AS
+-- Created a table to set real null values in order to change datatypes, remove other null values and trim units of measurement, moved the units into the column header 
+CREATE TABLE runner_orders_cln AS
 SELECT 
   order_id, 
   runner_id,  
@@ -551,4 +551,111 @@ ORDER BY total DESC;
 | Cheese | 4 |
 | Mushrooms | 1 |
 | BBQ Sauce | 1 |
+<br>
+
+**4. Generate an order item for each record in the customers_orders table in the format of one of the following:<br>
+◽ Meat Lovers<br>
+◽ Meat Lovers - Exclude Beef<br>
+◽ Meat Lovers - Extra Bacon<br>
+◽ Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Peppers**
+
+```sql
+-- Creating a row ID number and a column that identifies the name for each type of pizza
+
+SET @row_number = 0;
+
+CREATE TABLE customer_orders_cln_2 AS
+SELECT
+  (@row_number:=@row_number + 1) AS row_num,
+  customer_orders_cln.*,
+  CASE
+    WHEN pizza_id = 1 THEN 'Meatlovers'
+	WHEN pizza_id = 2 THEN 'Vegetarian'
+  END AS pizza_name
+FROM customer_orders_cln;
+    
+-- Converting the topping IDs in the 'exclusions' and 'extras' columns to names then merging them together with the pizza name.
+  
+WITH RECURSIVE SplitExtras AS (
+  SELECT 
+    row_num,
+    SUBSTRING_INDEX(SUBSTRING_INDEX(extras, ',', n.digit + 1), ',', -1) AS topping_id,
+    pizza_name
+  FROM 
+    customer_orders_cln_2
+  CROSS JOIN 
+    (SELECT 0 AS digit UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4) AS n
+  WHERE 
+    LENGTH(extras) - LENGTH(REPLACE(extras, ',', '')) >= n.digit OR extras IS NULL
+),
+SplitExclusions AS (
+  SELECT 
+    row_num,
+    SUBSTRING_INDEX(SUBSTRING_INDEX(exclusions, ',', n.digit + 1), ',', -1) AS topping_id,
+    pizza_name
+  FROM 
+    customer_orders_cln_2
+  CROSS JOIN 
+    (SELECT 0 AS digit UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4) AS n
+  WHERE 
+    LENGTH(exclusions) - LENGTH(REPLACE(exclusions, ',', '')) >= n.digit OR exclusions IS NULL
+),
+AllToppings AS (
+  SELECT 
+    co.row_num,
+    se.topping_id AS extra_topping_id,
+    sx.topping_id AS exclusion_topping_id,
+    te.topping_name AS extra_topping_name,
+    tx.topping_name AS exclusion_topping_name,
+    co.pizza_name
+  FROM 
+    customer_orders_cln_2 co
+  LEFT JOIN 
+    SplitExtras se ON co.row_num = se.row_num
+  LEFT JOIN 
+    SplitExclusions sx ON co.row_num = sx.row_num
+  LEFT JOIN 
+    pizza_toppings te ON se.topping_id = te.topping_id
+  LEFT JOIN 
+    pizza_toppings tx ON sx.topping_id = tx.topping_id
+),
+JoinedToppings AS (
+SELECT 
+  row_num,
+  CONCAT('Extra', GROUP_CONCAT(DISTINCT CONCAT(' ', extra_topping_name)
+    ORDER BY CAST(extra_topping_id AS UNSIGNED))) AS extras_with_extra_name,
+  CONCAT('Exclude', GROUP_CONCAT(DISTINCT CONCAT(' ', exclusion_topping_name)
+    ORDER BY CAST(exclusion_topping_id AS UNSIGNED))) AS exclusions_with_extra_name,
+  pizza_name
+FROM 
+  AllToppings
+GROUP BY 
+  row_num
+)
+SELECT
+row_num,
+CONCAT_WS(' - ',
+  pizza_name,
+  exclusions_with_extra_name,
+  extras_with_extra_name
+  ) AS ordered_items  
+FROM JoinedToppings;
+```
+**Answer:**
+| row_num | ordered_items |
+|---|---|
+| 1 | Meatlovers |
+| 2 | Meatlovers |
+| 3 | Meatlovers |
+| 4 | Vegetarian |
+| 5 | Meatlovers - Exclude Cheese |
+| 6 | Meatlovers - Exclude Cheese |
+| 7 | Vegetarian - Exclude Cheese |
+| 8 | Meatlovers - Extra Bacon |
+| 9 | Vegetarian |
+| 10 | Vegetarian - Extra Bacon |
+| 11 | Meatlovers |
+| 12 | Meatlovers - Exclude Cheese - Extra Bacon, Chicken |
+| 13 | Meatlovers |
+| 14 | Meatlovers - Exclude BBQ Sauce, Mushrooms - Extra Bacon, Cheese |
 <br>
