@@ -98,4 +98,192 @@ Journey:
 
 ## B. Data Analysis Questions
 
+**1. How many customers has Foodie-Fi ever had?**
+
+```sql
+SELECT
+  COUNT(DISTINCT customer_id) AS total_customers
+FROM foodie_fi.subscriptions;
+```
+**Answer:**
+| total_customers |
+|---|
+| 1000 |
+<br>
+
+**2. What is the monthly distribution of trial plan start_date values for our dataset - use the start of the month as the group by value.**
+
+```sql
+SELECT
+  EXTRACT(MONTH FROM start_date) AS month,
+  COUNT(DISTINCT customer_id) AS total_trials
+FROM foodie_fi.subscriptions
+WHERE plan_id = 0
+GROUP BY EXTRACT(MONTH FROM start_date)
+ORDER BY month;
+```
+**Answer:**
+| month | total_trials |
+|---|---|
+| 1 | 88 |
+| 2 | 68 |
+| 3 | 94 |
+| 4 | 81 |
+| 5 | 88 |
+| 6 | 79 |
+| 7 | 89 |
+| 8 | 88 |
+| 9 | 87 |
+| 10 | 79 |
+| 11 | 74 |
+| 12 | 84 |
+<br>
+
+**3. What plan start_date values occur after the year 2020 for our dataset? Show the breakdown by count of events for each plan_name.**
+
+```sql
+SELECT
+  p.plan_name,
+  COUNT(s.start_date) AS plans_after_2020
+FROM foodie_fi.subscriptions AS s
+JOIN foodie_fi.plans AS p
+  ON s.plan_id = p.plan_id
+WHERE DATE_PART('year', start_date) > 2020
+GROUP BY p.plan_name
+ORDER BY p.plan_name;
+```
+**Answer:**
+| plan_name | plans_after_2020 |
+|---|---|
+| basic monthly | 8 |
+| churn | 71 |
+| pro annual | 63 |
+| pro monthly | 60 |
+<br>
+
+**4. What is the customer count and percentage of customers who have churned rounded to 1 decimal place?**
+
+```sql
+SELECT
+  COUNT(CASE WHEN plan_id = 4 THEN customer_id END) AS churn_count,
+  ROUND(100.0 * SUM(CASE WHEN plan_id = 4 THEN 1 ELSE 0 END) / COUNT(DISTINCT customer_id), 1) AS churn_percentage
+FROM foodie_fi.subscriptions;
+```
+**Answer:**
+| churn_count | churn_percentage |
+|---|---|
+| 307 | 30.7 |
+<br>
+
+**5. How many customers have churned straight after their initial free trial - what percentage is this rounded to the nearest whole number?**
+
+```sql
+WITH churned AS(
+SELECT
+  customer_id,
+  CASE 
+    WHEN plan_id = 4
+    AND
+    LAG(plan_id) OVER (PARTITION BY customer_id ORDER BY start_date) = 0
+    THEN 1
+    ELSE 0
+  END as churned
+FROM foodie_fi.subscriptions
+)
+
+SELECT 
+  SUM(churned) as churned_customers,
+  ROUND(SUM(churned) / CAST(COUNT(DISTINCT customer_id) AS float) * 100) as churn_percentage
+FROM churned;
+```
+**Answer:**
+| churned_customers | churn_percentage |
+|---|---|
+| 92 | 9 |
+<br>
+
+**6. What is the number and percentage of customer plans after their initial free trial?**
+
+```sql
+
+```
+**Answer:**
+| column1 | column2 |
+|---|---|
+| example | example |
+| example | example |
+| example | example |
+| example | example |
+<br>
+
+**7. What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?**
+
+```sql
+
+```
+**Answer:**
+| column1 | column2 |
+|---|---|
+| example | example |
+| example | example |
+| example | example |
+| example | example |
+<br>
+
+**8. How many customers have upgraded to an annual plan in 2020?**
+
+```sql
+
+```
+**Answer:**
+| column1 | column2 |
+|---|---|
+| example | example |
+| example | example |
+| example | example |
+| example | example |
+<br>
+
+**9. How many days on average does it take for a customer to an annual plan from the day they join Foodie-Fi?**
+
+```sql
+
+```
+**Answer:**
+| column1 | column2 |
+|---|---|
+| example | example |
+| example | example |
+| example | example |
+| example | example |
+<br>
+
+**10. Can you further breakdown this average value into 30 day periods (i.e. 0-30 days, 31-60 days etc).**
+
+```sql
+
+```
+**Answer:**
+| column1 | column2 |
+|---|---|
+| example | example |
+| example | example |
+| example | example |
+| example | example |
+<br>
+
+**11. How many customers downgraded from a pro monthly to a basic monthly plan in 2020?**
+
+```sql
+
+```
+**Answer:**
+| column1 | column2 |
+|---|---|
+| example | example |
+| example | example |
+| example | example |
+| example | example |
+<br>
+
 ## C. Challenge Payment Question
