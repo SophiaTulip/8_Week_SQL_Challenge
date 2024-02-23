@@ -205,15 +205,32 @@ FROM churned;
 **6. What is the number and percentage of customer plans after their initial free trial?**
 
 ```sql
+WITH after_trial AS(
+SELECT
+  customer_id,
+  plan_id,
+  ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY start_date) AS plan_rank
+FROM foodie_fi.subscriptions
+)
 
+SELECT
+  plan_name,
+  COUNT(plan_rank) AS plan_total,
+  ROUND(COUNT(plan_rank) * 100.0 / (SELECT COUNT(DISTINCT customer_id) FROM after_trial), 1)  AS percentage
+FROM after_trial
+JOIN foodie_fi.plans
+  ON after_trial.plan_id = plans.plan_id
+WHERE plan_rank = 2
+GROUP BY plan_name
+ORDER BY plan_name;
 ```
 **Answer:**
-| column1 | column2 |
-|---|---|
-| example | example |
-| example | example |
-| example | example |
-| example | example |
+| plan_name | plan_total | percentage |
+|---|---|---|
+| basic monthly | 546 | 54.6 |
+| churn | 92 | 9.2 |
+| pro annual | 37 | 3.7 |
+| pro monthly | 325 | 32.5 |
 <br>
 
 **7. What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?**
