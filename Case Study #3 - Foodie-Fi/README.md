@@ -236,29 +236,56 @@ ORDER BY plan_name;
 **7. What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?**
 
 ```sql
+WITH TotalCount AS(
+SELECT
+  customer_id,
+  plan_id,
+  COUNT(DISTINCT customer_id) AS tot_count,
+  ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY start_date DESC) AS plan_rank
+FROM foodie_fi.subscriptions
+WHERE start_date <= '2020-12-31'
+GROUP BY plan_id, customer_id, start_date
+)
+
+SELECT
+  plan_name,
+  COUNT(tot_count) AS tot_customers,
+  ROUND(COUNT(tot_count) * 100.0 / (SELECT COUNT(DISTINCT customer_id) FROM TotalCount), 1) AS percentage
+FROM TotalCount
+JOIN foodie_fi.plans
+  ON TotalCount.plan_id = plans.plan_id
+WHERE plan_rank = 1
+GROUP BY plan_name, tot_count
+ORDER BY plan_name ASC;
 
 ```
 **Answer:**
-| column1 | column2 |
-|---|---|
-| example | example |
-| example | example |
-| example | example |
-| example | example |
+| plan_name | tot_customers | percentage |
+|---|---|---|
+| basic monthly | 224 | 22.4 |
+| churn | 236 | 23.6 |
+| pro annual | 195 | 19.5 |
+| pro monthly | 326 | 32.6 |
+| trial | 19 | 1.9 |
 <br>
 
 **8. How many customers have upgraded to an annual plan in 2020?**
 
 ```sql
-
+SELECT
+  p.plan_name,
+  COUNT(s.customer_id) AS tot_customers
+FROM foodie_fi.subscriptions s
+JOIN foodie_fi.plans p
+  ON s.plan_id = p.plan_id
+WHERE s.plan_id = 3
+  AND DATE_PART('year', s.start_date) = 2020
+GROUP BY p.plan_name;
 ```
 **Answer:**
-| column1 | column2 |
+| plan_name | tot_customers |
 |---|---|
-| example | example |
-| example | example |
-| example | example |
-| example | example |
+| pro annual | 195 |
 <br>
 
 **9. How many days on average does it take for a customer to an annual plan from the day they join Foodie-Fi?**
